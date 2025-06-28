@@ -6,7 +6,7 @@ A collection of useful scripts for Continuous Integration (CI) pipelines to ensu
 
 ### 1. security-check.sh
 
-A comprehensive security testing script for Docker images, particularly designed for images. This script performs various security checks to ensure your Docker containers follow security best practices.
+A comprehensive security testing script for Docker images, particularly designed for scratch-based images. This script performs various security checks to ensure your Docker containers follow security best practices.
 
 #### Features
 
@@ -16,11 +16,11 @@ The script performs the following security checks:
 2. **Bash Access Prevention** - Ensures bash access (`/bin/bash`) is not possible
 3. **Environment Variable Protection** - Checks that environment variables are not exposed
 4. **Arbitrary Command Execution** - Tests if arbitrary commands can be executed
-5. **Non-Root User** - Verifies the container doesn't run as root (UID != 0)
+5. **Root User Check** - Warns if container runs as root (many applications do this)
 6. **Sensitive Files Check** - Ensures sensitive system files (`/etc/passwd`, `/etc/shadow`) are not present
 7. **Application Binary Verification** - Checks if the specified application binary is accessible and executable
 8. **Image Size Analysis** - Reports the Docker image size
-9. **CA Certificates** - Verifies presence of CA certificates for SSL/TLS connections
+9. **CA Certificates** - Checks Dockerfile for CA certificates inclusion (important for scratch images)
 
 #### Usage
 
@@ -49,6 +49,7 @@ The script provides clear pass/fail indicators for each check:
 
 - ✅ **PASS**: Security check passed
 - ❌ **FAIL**: Security check failed
+- ⚠️ **WARNING**: Non-critical issue detected
 - 📦 **Image size**: Shows the Docker image size
 - 🎉 **Success**: All checks passed
 - ⚠️ **Warning**: Some checks failed

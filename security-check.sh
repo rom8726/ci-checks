@@ -28,6 +28,17 @@ pass() {
     echo "✅ PASS: $1"
 }
 
+# Detect if image is scratch-based
+echo "🔍 Detecting image type..."
+if docker run --rm "$IMAGE_NAME" echo "test" 2>&1 | grep -q "no such file or directory\|not found\|executable file not found\|exec format error"; then
+    IS_SCRATCH=1
+    echo "📦 Detected: Scratch-based image"
+else
+    IS_SCRATCH=0
+    echo "🐧 Detected: Regular Linux image"
+fi
+echo ""
+
 # 1. Shell access
 echo "1. Checking shell access..."
 docker run --rm "$IMAGE_NAME" /bin/sh 2>/dev/null && fail "Shell access is possible" || pass "Shell access blocked"
@@ -44,15 +55,18 @@ docker run --rm -e TEST_VAR=secret "$IMAGE_NAME" env 2>/dev/null | grep -q TEST_
 echo "4. Checking arbitrary command execution..."
 docker run --rm "$IMAGE_NAME" whoami 2>/dev/null && fail "Arbitrary command executed" || pass "Arbitrary commands blocked"
 
-# 5. Run as root
-echo "5. Checking if container runs as root..."
-USER_ID=$(docker run --rm "$IMAGE_NAME" id -u 2>/dev/null || echo "no-access")
-if [ "$USER_ID" = "0" ]; then
-    fail "Container runs as root"
+# 5. Run as root (skip for scratch images)
+if [ "$IS_SCRATCH" -eq 1 ]; then
+    echo "5. Skipping root user check (scratch image)"
 else
-    pass "Container runs as non-root (UID=$USER_ID)"
+    echo "5. Checking if container runs as root..."
+    USER_ID=$(docker run --rm "$IMAGE_NAME" id -u 2>/dev/null || echo "no-access")
+    if [ "$USER_ID" = "0" ]; then
+        echo "⚠️  WARNING: Container runs as root (this is common for many applications)"
+    else
+        pass "Container runs as non-root (UID=$USER_ID)"
+    fi
 fi
-
 
 # 6. Sensitive files
 echo "6. Checking for sensitive system files..."
@@ -73,22 +87,36 @@ echo "8. Checking image size..."
 SIZE=$(docker images --format "{{.Size}}" "$IMAGE_NAME")
 echo "📦 Image size: $SIZE"
 
-# 9. CA certificates
+# 9. CA certificates (different approach for scratch vs regular images)
 echo "9. Checking for CA certificates..."
-CA_PATHS=(
-    /etc/ssl/certs/ca-certificates.crt
-    /etc/ssl/certs/ca-bundle.crt
-    /etc/pki/tls/certs/ca-bundle.crt
-)
-FOUND_CA=0
-for CA_PATH in "${CA_PATHS[@]}"; do
-    if docker run --rm "$IMAGE_NAME" test -f "$CA_PATH"; then
-        pass "CA certificates found at $CA_PATH"
-        FOUND_CA=1
-        break
+if [ "$IS_SCRATCH" -eq 1 ]; then
+    # For scratch images, check Dockerfile
+    if [ -f "Dockerfile" ]; then
+        if grep -q "ca-certificates.crt" Dockerfile; then
+            pass "CA certificates found in Dockerfile"
+        else
+            fail "CA certificates not found in Dockerfile"
+        fi
+    else
+        echo "⚠️  WARNING: Dockerfile not found, skipping CA certificates check"
     fi
-done
-[ "$FOUND_CA" -eq 0 ] && fail "CA certificates not found in common paths"
+else
+    # For regular images, check inside container
+    CA_PATHS=(
+        /etc/ssl/certs/ca-certificates.crt
+        /etc/ssl/certs/ca-bundle.crt
+        /etc/pki/tls/certs/ca-bundle.crt
+    )
+    FOUND_CA=0
+    for CA_PATH in "${CA_PATHS[@]}"; do
+        if docker run --rm "$IMAGE_NAME" test -f "$CA_PATH" 2>/dev/null; then
+            pass "CA certificates found at $CA_PATH"
+            FOUND_CA=1
+            break
+        fi
+    done
+    [ "$FOUND_CA" -eq 0 ] && fail "CA certificates not found in common paths"
+fi
 
 # Final summary
 echo ""

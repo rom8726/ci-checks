@@ -6,7 +6,7 @@ A collection of useful scripts for Continuous Integration (CI) pipelines to ensu
 
 ### 1. security-check.sh
 
-A comprehensive security testing script for Docker images, particularly designed for scratch-based images. This script performs various security checks to ensure your Docker containers follow security best practices.
+A comprehensive security testing script for Docker images, particularly designed for images. This script performs various security checks to ensure your Docker containers follow security best practices.
 
 #### Features
 

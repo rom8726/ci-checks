@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Minimal security check script for scratch-based Docker images
+# Minimal security check script for Docker images
 # Usage: ./test-security.sh <image_name> [binary_path]
 
 set -e

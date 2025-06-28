@@ -21,19 +21,17 @@ The script performs the following security checks:
 7. **Application Binary Verification** - Checks if the specified application binary is accessible and executable
 8. **Image Size Analysis** - Reports the Docker image size
 9. **CA Certificates** - Verifies presence of CA certificates for SSL/TLS connections
-10. **Curl Availability** (optional) - Checks if curl is available for HTTP requests
 
 #### Usage
 
 ```bash
-./security-check.sh <image_name> [binary_path] [--check-curl]
+./security-check.sh <image_name> [binary_path]
 ```
 
 #### Parameters
 
 - `image_name` (required): The Docker image name to test (e.g., `my-app:latest`)
 - `binary_path` (optional): Path to the application binary inside the container (e.g., `/bin/app`)
-- `--check-curl` (optional): Enable curl availability check
 
 #### Examples
 
@@ -43,12 +41,6 @@ The script performs the following security checks:
 
 # Check with application binary
 ./security-check.sh my-server:latest /bin/app
-
-# Check with curl verification
-./security-check.sh my-server:latest /bin/app --check-curl
-
-# Check only curl availability
-./security-check.sh my-server:latest --check-curl
 ```
 
 #### Output

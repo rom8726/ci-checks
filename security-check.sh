@@ -1,22 +1,17 @@
 #!/bin/bash
 
 # Minimal security check script for scratch-based Docker images
-# Usage: ./test-security.sh <image_name> [binary_path] [--check-curl]
+# Usage: ./test-security.sh <image_name> [binary_path]
 
 set -e
 
 IMAGE_NAME="$1"
 APP_BINARY="$2"
-CHECK_CURL=0
 FAILURES=0
 
-if [[ "$3" == "--check-curl" || "$2" == "--check-curl" || "$3" == "--check-curl" ]]; then
-    CHECK_CURL=1
-fi
-
 if [ -z "$IMAGE_NAME" ]; then
-    echo "Usage: $0 <image_name> [binary_path] [--check-curl]"
-    echo "Example: $0 my-server:latest /bin/app --check-curl"
+    echo "Usage: $0 <image_name> [binary_path]"
+    echo "Example: $0 my-server:latest /bin/app"
     exit 1
 fi
 
@@ -61,7 +56,7 @@ for FILE in /etc/passwd /etc/shadow; do
 done
 
 # 7. Application binary
-if [[ -n "$APP_BINARY" && "$APP_BINARY" != "--check-curl" ]]; then
+if [[ -n "$APP_BINARY" ]]; then
     echo "7. Checking application binary at $APP_BINARY..."
     docker run --rm "$IMAGE_NAME" "$APP_BINARY" --help 2>/dev/null && pass "Application binary is accessible" || fail "$APP_BINARY is not accessible or not executable"
 else
@@ -89,14 +84,6 @@ for CA_PATH in "${CA_PATHS[@]}"; do
     fi
 done
 [ "$FOUND_CA" -eq 0 ] && fail "CA certificates not found in common paths"
-
-# 10. Optional: Check for curl
-if [ "$CHECK_CURL" -eq 1 ]; then
-    echo "10. Checking curl availability..."
-    docker run --rm "$IMAGE_NAME" curl --version 2>/dev/null && pass "curl is available" || fail "curl not found"
-else
-    echo "10. Skipping curl check (--check-curl not passed)"
-fi
 
 # Final summary
 echo ""

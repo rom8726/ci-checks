@@ -30,12 +30,27 @@ pass() {
 
 # Detect if image is scratch-based
 echo "🔍 Detecting image type..."
-if docker run --rm "$IMAGE_NAME" echo "test" 2>&1 | grep -q "no such file or directory\|not found\|executable file not found\|exec format error"; then
-    IS_SCRATCH=1
-    echo "📦 Detected: Scratch-based image"
+IS_SCRATCH=0
+
+# Check Dockerfile for scratch base image
+if [ -f "Dockerfile" ]; then
+    # Get the last FROM instruction and check if it's scratch
+    LAST_FROM=$(grep -i "^FROM" Dockerfile | tail -1)
+    if echo "$LAST_FROM" | grep -q "FROM scratch"; then
+        IS_SCRATCH=1
+        echo "📦 Detected: Scratch-based image (FROM scratch in Dockerfile)"
+    else
+        echo "🐧 Detected: Regular Linux image (FROM $LAST_FROM)"
+    fi
 else
-    IS_SCRATCH=0
-    echo "🐧 Detected: Regular Linux image"
+    # Fallback: try to detect by running a command
+    echo "⚠️  WARNING: Dockerfile not found, using fallback detection"
+    if docker run --rm "$IMAGE_NAME" echo "test" 2>&1 | grep -q "no such file or directory\|not found\|executable file not found\|exec format error"; then
+        IS_SCRATCH=1
+        echo "📦 Detected: Scratch-based image (fallback detection)"
+    else
+        echo "🐧 Detected: Regular Linux image (fallback detection)"
+    fi
 fi
 echo ""
 

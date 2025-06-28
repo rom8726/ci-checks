@@ -46,8 +46,13 @@ docker run --rm "$IMAGE_NAME" whoami 2>/dev/null && fail "Arbitrary command exec
 
 # 5. Run as root
 echo "5. Checking if container runs as root..."
-UID=$(docker run --rm "$IMAGE_NAME" id -u 2>/dev/null || echo "no-access")
-[ "$UID" = "0" ] && fail "Container runs as root" || pass "Container runs as non-root (UID=$UID)"
+USER_ID=$(docker run --rm "$IMAGE_NAME" id -u 2>/dev/null || echo "no-access")
+if [ "$USER_ID" = "0" ]; then
+    fail "Container runs as root"
+else
+    pass "Container runs as non-root (UID=$USER_ID)"
+fi
+
 
 # 6. Sensitive files
 echo "6. Checking for sensitive system files..."
